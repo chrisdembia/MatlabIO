@@ -14,7 +14,15 @@ int main(int argc, char** argv)
 
 	for (Matlab::Matrix* matrix : file.matricies())
 	{
-		std::cout << matrix->to_string() << std::endl;
+		std::cout << "Name: " << matrix->name->to_string() << std::endl;
+		std::cout << "--Dims:" << matrix->dimensions->to_string() << std::endl;
+
+		int j = 0;
+
+		for (auto child : matrix->nodes())
+			std::cout << "--Child " << j++ << ": " << child->to_string(true) << std::endl;
+	
+		std::cout << std::endl;
 	}
 		
 	std::cout << "== EOF ==\n";

@@ -119,7 +119,6 @@ namespace Matlab
 			std::ostream& operator>>(std::ostream& src);
 			~_matlab_array();
 			const std::int32_t mft() const;
-			const std::string to_string(bool cast = false) const;
 		private:
 			template<class T>
 			char* read_single_primitive(char* src, T** dest);

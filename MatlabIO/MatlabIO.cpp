@@ -270,22 +270,6 @@ char* __internal::_matlab_array::read_single_primitive(char* src, T** dest)
 	return data_loc + data_len + padding_bts;
 }
 
-const std::string __internal::_matlab_array::to_string(bool cast) const
-{
-	std::stringstream ss;
-
-	ss << "Name: " << name->to_string() << std::endl;
-	ss << "--Dims:" << dimensions->to_string() << std::endl;
-
-	int j = 0;
-
-	for (auto child : children)
-		ss << "--Child " << j++ << ": " << child->to_string(true) << std::endl;
-
-	return ss.str();
-
-}
-
 __internal::_matlab_array::~_matlab_array()
 {
 	delete flags, dimensions, name;
