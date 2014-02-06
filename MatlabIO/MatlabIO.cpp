@@ -1,7 +1,7 @@
 
 #include "stdafx.h"
 
-#include "MatlabInternal.h"
+#include "MatlabIO.h"
 #include "tinyfl.h"
 
 using namespace Matlab;
@@ -328,7 +328,9 @@ __internal::_file::_file(std::string file_name)
 	_flag_version = _subs_offset + 8;
 	_end_indicator = _flag_version + 2;
 
-	// todo: endian handling...
+	// todo: proper endian handling...
+	if (_end_indicator[0] != 'I')
+		throw std::exception("endian check failed!");
 
 	root = new _root(_end_indicator + 2, _tot_len - 128);
 

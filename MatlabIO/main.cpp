@@ -13,8 +13,10 @@ int main(int argc, char** argv)
 	std::cout << file.description() << std::endl;
 
 	for (Matlab::Matrix* matrix : file.matricies())
-			std::cout << matrix->to_string() << std::endl;
-
+	{
+		std::cout << matrix->to_string() << std::endl;
+	}
+		
 	std::cout << "== EOF ==\n";
 
 	std::cin.get();
