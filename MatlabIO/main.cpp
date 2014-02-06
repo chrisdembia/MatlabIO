@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "MatlabInternal.h"
+#include "MatlabIO.h"
 
 int main(int argc, char** argv)
 {

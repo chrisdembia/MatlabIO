@@ -24,10 +24,10 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MatlabInternal.h">
+    <ClInclude Include="tinyfl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="tinyfl.h">
+    <ClInclude Include="MatlabIO.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -35,10 +35,10 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MatlabInternal.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="MatlabIO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
