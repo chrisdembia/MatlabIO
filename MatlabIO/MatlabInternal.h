@@ -1,7 +1,6 @@
 #ifndef MATLAB_INTERNAL_H
 #define MATLAB_INTERNAL_H
 
-
 #include <iostream>
 #include <cstdint>
 #include <list>
@@ -24,6 +23,7 @@ namespace Matlab
 			{
 				return "";
 			}
+			virtual const std::int32_t mft() const = 0;
 			static const std::int32_t MFT = 0x0;
 		protected:
 			std::list<_data_type_base*> children;
@@ -53,6 +53,10 @@ namespace Matlab
 			{
 				return length;
 			}
+			const std::int32_t mft() const
+			{
+				return _MFT;
+			}
 			const std::string to_string(bool cast = false) const
 			{
 				std::stringstream ss;
@@ -71,6 +75,10 @@ namespace Matlab
 
 		struct _root : public _data_type_base
 		{
+			const std::int32_t mft() const
+			{
+				return 0x00;
+			}
 			static const std::int32_t MFT = 0x00;
 
 			_root(char* start, int len);
@@ -81,56 +89,6 @@ namespace Matlab
 				return src;
 			}
 
-		};
-
-		struct _file
-		{
-			const std::string& description() const
-			{
-				return _desc;
-			}
-			const std::list<_data_type_base*>& nodes() const
-			{
-				return root->nodes();
-			}
-			_file(std::string file_name)
-			{
-				std::ifstream file(file_name, std::ifstream::binary);
-
-				file.seekg(0, file.end);
-				std::streamoff length = file.tellg();
-
-				file.seekg(0, file.beg);
-
-				_tot_len = static_cast<std::size_t>(length);
-
-				_data = new char[_tot_len];
-				file.read(_data, _tot_len);
-
-				std::stringstream header_stream;
-				for (int i = 0; i < 116; ++i)
-					header_stream << _data[i];
-				_desc = header_stream.str();
-
-				_subs_offset = _data + 116;
-				_flag_version = _subs_offset + 8;
-				_end_indicator = _flag_version + 2;
-
-				root = new _root(_end_indicator + 2, _tot_len - 128);
-			}
-
-			~_file()
-			{
-				delete[] _data;
-			}
-		private:
-			_root* root;
-			std::string _desc;
-			char* _subs_offset;
-			char* _flag_version;
-			char* _end_indicator;
-			char* _data;
-			std::size_t _tot_len;
 		};
 
 		struct _compressed_type : public _data_type_base
@@ -145,6 +103,10 @@ namespace Matlab
 			{
 				// todo...
 				return src;
+			}
+			const std::int32_t mft() const
+			{
+				return 0x0F;
 			}
 		private:
 			std::uint32_t compressed_data_len;
@@ -206,6 +168,10 @@ namespace Matlab
 			{
 				delete flags, dimensions, name;
 			}
+			const std::int32_t mft() const
+			{
+				return 0x0E;
+			}
 
 			const std::string to_string(bool cast = false) const
 			{
@@ -254,6 +220,77 @@ namespace Matlab
 				return data_loc + data_len + padding_bts;
 			}
 		};
+
+
+		struct _file
+		{
+			const std::list<_matlab_array*>& matricies() const
+			{
+				return _matricies;
+			}
+			const std::string& description() const
+			{
+				return _desc;
+			}
+			const std::list<_data_type_base*>& nodes() const
+			{
+				return root->nodes();
+			}
+			_file(std::string file_name)
+			{
+				std::ifstream file(file_name, std::ifstream::binary);
+
+				file.seekg(0, file.end);
+				std::streamoff length = file.tellg();
+
+				file.seekg(0, file.beg);
+
+				_tot_len = static_cast<std::size_t>(length);
+
+				_data = new char[_tot_len];
+				file.read(_data, _tot_len);
+
+				std::stringstream header_stream;
+				for (int i = 0; i < 116; ++i)
+					header_stream << _data[i];
+				_desc = header_stream.str();
+
+				_subs_offset = _data + 116;
+				_flag_version = _subs_offset + 8;
+				_end_indicator = _flag_version + 2;
+
+				// todo: endian handling...
+
+				root = new _root(_end_indicator + 2, _tot_len - 128);
+
+				_rec_find_mat(root);
+			}
+
+			~_file()
+			{
+				delete[] _data;
+			}
+		private:
+			void _rec_find_mat(_data_type_base* cur)
+			{
+				if (cur->mft() == __internal::_matlab_array::MFT)
+					_matricies.push_back(dynamic_cast<_matlab_array*>(cur));
+
+				for (_data_type_base* child : cur->nodes())
+					_rec_find_mat(child);
+			}
+
+			_root* root;
+			std::string _desc;
+			char* _subs_offset;
+			char* _flag_version;
+			char* _end_indicator;
+			char* _data;
+			bool _new;
+			std::size_t _tot_len;
+			std::list<_matlab_array*> _matricies;
+		};
+
 	}
 
 	namespace DataTypes
