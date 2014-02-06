@@ -6,6 +6,9 @@
 
 using namespace Matlab;
 
+////////////////////////////////////
+//             _root              //
+////////////////////////////////////
 __internal::_root::_root(char* start, int len)
 {
 	char* cur_point = start;
@@ -89,6 +92,20 @@ __internal::_root::_root(char* start, int len)
 	}
 }
 
+const std::int32_t __internal::_root::mft() const
+{
+	return 0x00;
+}
+
+std::ostream& __internal::_root::operator>>(std::ostream& src)
+{
+	// todo...
+	return src;
+}
+
+////////////////////////////////////
+//       _compressed_type         //
+////////////////////////////////////
 __internal::_compressed_type::_compressed_type(char* start, int len)
 {
 	compressed_data = start;
@@ -111,6 +128,25 @@ __internal::_compressed_type::_compressed_type(char* start, int len)
 	children.push_back(ch);
 }
 
+__internal::_compressed_type::~_compressed_type()
+{
+	delete[] uncompressed_data;
+}
+
+std::ostream& __internal::_compressed_type::operator>>(std::ostream& src)
+{
+	// todo...
+	return src;
+}
+
+const std::int32_t __internal::_compressed_type::mft() const
+{
+	return 0x0F;
+}
+
+////////////////////////////////////
+//         _matlab_array          //
+////////////////////////////////////
 __internal::_matlab_array::_matlab_array(char* start, int len)
 {
 	char* ptr = start;
@@ -193,7 +229,7 @@ __internal::_matlab_array::_matlab_array(char* start, int len)
 		case 0x0:
 			break;
 		default:
-			// std::cout << "UNSUPPORTED DATA TYPE IN MATLAB FILE: " << data_type_id << std::endl;
+			// std::cout << "WARNING: Unsupported data type in Matlab File (ignoring): " << data_type_id << std::endl;
 			break;
 		}
 
@@ -201,4 +237,181 @@ __internal::_matlab_array::_matlab_array(char* start, int len)
 	}
 
 	
+}
+
+template<class T>
+char* __internal::_matlab_array::read_single_primitive(char* src, T** dest)
+{
+	char* data_loc;
+	std::uint32_t data_type_id;
+	std::uint32_t data_len;
+	if (*(src + 2) == 0 && *(src + 3) == 0)
+	{
+		// regular data format
+		data_loc = src + 8;
+		data_len = *(reinterpret_cast<std::uint32_t*>(src + 4));
+		data_type_id = *(reinterpret_cast<std::uint32_t*>(src));
+	}
+	else
+	{
+		// compressed data format
+		data_loc = src + 4;
+		std::int16_t len_t = *(reinterpret_cast<std::uint16_t*>(src));
+		std::int16_t typeid_t = *(reinterpret_cast<std::uint16_t*>(src + 2));
+		data_len = len_t;
+		data_type_id = typeid_t;
+	}
+	*dest = new T(data_loc, data_len);
+
+	std::size_t padding_bts = 0;
+	if ((data_loc + data_len - src) % 8 != 0)
+		padding_bts = 8 - ((data_loc + data_len - src) % 8);
+
+	return data_loc + data_len + padding_bts;
+}
+
+const std::string __internal::_matlab_array::to_string(bool cast) const
+{
+	std::stringstream ss;
+
+	ss << "Name: " << name->to_string() << std::endl;
+	ss << "--Dims:" << dimensions->to_string() << std::endl;
+
+	int j = 0;
+
+	for (auto child : children)
+		ss << "--Child " << j++ << ": " << child->to_string(true) << std::endl;
+
+	return ss.str();
+
+}
+
+__internal::_matlab_array::~_matlab_array()
+{
+	delete flags, dimensions, name;
+}
+
+const std::int32_t __internal::_matlab_array::mft() const
+{
+	return 0x0E;
+}
+
+std::ostream& __internal::_matlab_array::operator>>(std::ostream& src)
+{
+	// todo...
+	return src;
+}
+
+////////////////////////////////////
+//             _file              //
+////////////////////////////////////
+__internal::_file::_file(std::string file_name)
+{
+	std::ifstream file(file_name, std::ifstream::binary);
+
+	file.seekg(0, file.end);
+	std::streamoff length = file.tellg();
+
+	file.seekg(0, file.beg);
+
+	_tot_len = static_cast<std::size_t>(length);
+
+	_data = new char[_tot_len];
+	file.read(_data, _tot_len);
+
+	std::stringstream header_stream;
+	for (int i = 0; i < 116; ++i)
+		header_stream << _data[i];
+	_desc = header_stream.str();
+
+	_subs_offset = _data + 116;
+	_flag_version = _subs_offset + 8;
+	_end_indicator = _flag_version + 2;
+
+	// todo: endian handling...
+
+	root = new _root(_end_indicator + 2, _tot_len - 128);
+
+	_rec_find_mat(root);
+
+}
+
+__internal::_file::~_file()
+{
+	delete[] _data;
+}
+
+const std::list<__internal::_data_type_base*>& __internal::_file::nodes() const
+{
+	return root->nodes();
+}
+
+const std::string& __internal::_file::description() const
+{
+	return _desc;
+}
+
+const std::list<__internal::_matlab_array*>& __internal::_file::matricies() const
+{
+	return _matricies;
+}
+
+void __internal::_file::_rec_find_mat(_data_type_base* cur)
+{
+	if (cur->mft() == __internal::_matlab_array::MFT)
+		_matricies.push_back(dynamic_cast<_matlab_array*>(cur));
+
+	for (_data_type_base* child : cur->nodes())
+		_rec_find_mat(child);
+}
+
+////////////////////////////////////
+//         _basic_type            //
+////////////////////////////////////
+
+template<class T, std::int32_t _MFT>
+__internal::_basic_type<T, _MFT>::_basic_type(char* start, int len)
+{
+	val = reinterpret_cast<T*>(start);
+	length = len / sizeof(T);
+}
+
+template<class T, std::int32_t _MFT>
+std::ostream& __internal::_basic_type<T, _MFT>::operator>>(std::ostream& src)
+{
+	src << MFT;
+	src << length;
+	for (std::uint32_t i = 0; i < length; ++i)
+		src << val[i];
+	return src;
+}
+
+template<class T, std::int32_t _MFT>
+T* __internal::_basic_type<T, _MFT>::get() const
+{
+	return val;
+}
+
+template<class T, std::int32_t _MFT>
+const std::uint32_t __internal::_basic_type<T, _MFT>::len() const
+{
+	return length;
+}
+
+template<class T, std::int32_t _MFT>
+const std::int32_t __internal::_basic_type<T, _MFT>::mft() const
+{
+	return _MFT;
+}
+
+template<class T, std::int32_t _MFT>
+const std::string __internal::_basic_type<T, _MFT>::to_string(bool cast) const
+{
+	std::stringstream ss;
+	for (std::uint32_t i = 0; i < length; ++i)
+	if (cast)
+		ss << std::to_string(val[i]) << " ";
+	else
+		ss << val[i];
+	return ss.str();
 }
