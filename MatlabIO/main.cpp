@@ -8,14 +8,16 @@
 int main(int argc, char** argv)
 {
 
-	Matlab::File file("C:\\Users\\NMBL\\Desktop\\[1].mat");
+	Matlab::File file("C:\\Users\\NMBL\\Desktop\\imag.mat");
 
-	std::cout << file.description() << std::endl;
+	std::cout << "METADATA:\n\n";
+	std::cout << file.description() << std::endl << std::endl;
 
+	std::cout << "============\n\nMATRICIES:\n\n";
 	for (Matlab::Matrix* matrix : file.matricies())
 	{
 		std::cout << "Name: " << matrix->name->to_string() << std::endl;
-		std::cout << "--Dims:" << matrix->dimensions->to_string() << std::endl;
+		std::cout << "--Dimensions: " << matrix->dimensions->to_string() << std::endl;
 
 		int j = 0;
 
@@ -25,9 +27,8 @@ int main(int argc, char** argv)
 		std::cout << std::endl;
 	}
 		
-	std::cout << "== EOF ==\n";
+	std::cout << "============\n";
 
 	std::cin.get();
 	return 0;
 }
-

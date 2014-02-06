@@ -308,6 +308,9 @@ __internal::_file::_file(std::string file_name)
 		header_stream << _data[i];
 	_desc = header_stream.str();
 
+	// trim padding at the end
+	_desc = _desc.erase(_desc.find_last_not_of(' ') + 1);
+
 	_subs_offset = _data + 116;
 	_flag_version = _subs_offset + 8;
 	_end_indicator = _flag_version + 2;
