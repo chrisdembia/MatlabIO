@@ -1,5 +1,7 @@
 
+#ifdef _MSC_VER
 #include "stdafx.h"
+#endif
 
 #include <iostream>
 
@@ -8,7 +10,17 @@
 int main(int argc, char** argv)
 {
 
-	Matlab::File file("C:\\Users\\NMBL\\Desktop\\imag.mat");
+    std::string filename;
+    if (argc > 1)
+    {
+        filename = argv[1];
+    }
+    else
+    {
+        filename = "C:\\Users\\NMBL\\Desktop\\imag.mat";
+    }
+
+    Matlab::File file(filename);
 
 	std::cout << "METADATA:\n\n";
 	std::cout << file.description() << std::endl << std::endl;

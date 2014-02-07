@@ -11,6 +11,14 @@ namespace Matlab
 {
 	namespace __internal
 	{
+        struct Exception : public std::exception
+        {
+            std::string _msg;
+            Exception(std::string s) : _msg(s) { }
+            ~Exception() throw() { }
+            const char* what() const throw() { return _msg.c_str(); }
+        };
+
 		struct _data_type_base
 		{
 			virtual const std::list<_data_type_base*>& nodes() const
@@ -67,7 +75,7 @@ namespace Matlab
 			const std::int32_t mft() const;
 		private:
 			std::uint32_t compressed_data_len;
-			std::uint32_t uncompressed_data_len;
+			std::size_t uncompressed_data_len;
 			char* compressed_data;
 			char* uncompressed_data;
 		};

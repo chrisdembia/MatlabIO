@@ -1,5 +1,10 @@
 
+#ifdef _MSC_VER
 #include "stdafx.h"
+#else
+#include <string>
+#include <exception>
+#endif
 
 #include "MatlabIO.h"
 #include "tinyfl.h"
@@ -117,7 +122,7 @@ __internal::_compressed_type::_compressed_type(char* start, int len)
 		TINFL_FLAG_PARSE_ZLIB_HEADER);
 
 	if (uncomp == 0)
-		throw std::exception("unable to deflate compressed variable in matlab file");
+		throw Exception("unable to deflate compressed variable in matlab file");
 
 	uncompressed_data = reinterpret_cast<char*>(uncomp);
 
@@ -272,7 +277,9 @@ char* __internal::_matlab_array::read_single_primitive(char* src, T** dest)
 
 __internal::_matlab_array::~_matlab_array()
 {
-	delete flags, dimensions, name;
+	delete flags;
+    delete dimensions;
+    delete name;
 }
 
 const std::int32_t __internal::_matlab_array::mft() const
@@ -317,7 +324,7 @@ __internal::_file::_file(std::string file_name)
 
 	// todo: proper endian handling...
 	if (_end_indicator[0] != 'I')
-		throw std::exception("endian check failed!");
+		throw Exception("endian check failed!");
 
 	root = new _root(_end_indicator + 2, _tot_len - 128);
 
